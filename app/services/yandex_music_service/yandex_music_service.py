@@ -1,15 +1,11 @@
-__all__ = ['YandexMusicServiceImpl']
-
-
 import re
 from datetime import datetime
 from typing import Optional, Any
 
 import aiohttp
 
-from music_service.v1.service.yandex_music_service.exceptions import NotFoundException, InternalServiceErrorException
-from music_service.v1.service.yandex_music_service.yandex_music_service import YandexMusicService
-from music_service.v1.model.dto import ConcertDTO, PriceDTO, ArtistDTO, TracksListDTO
+from .exceptions import NotFoundException, InternalServiceErrorException
+from app.model.dto import ConcertDTO, PriceDTO, ArtistDTO, TracksListDTO
 
 
 def get_dict_value(d: dict, key: str) -> Any:
@@ -46,7 +42,7 @@ def contains_key(d: dict, key: str) -> bool:
     return d.get(key) is not None
 
 
-class YandexMusicServiceImpl(YandexMusicService):
+class YandexMusicService:
     """
     Class represents implementation of :class:`YandexMusicService`.
     """
@@ -56,7 +52,7 @@ class YandexMusicServiceImpl(YandexMusicService):
     __playlist_url_pattern: re.Pattern = re.compile(r"^.*/users/(\S+)/playlists/(\S+)$")
     __album_url_pattern: re.Pattern = re.compile(r"^.*/album/(\S+)$")
 
-    def __init__(self):
+    async def setup(self) -> None:
         self.__session = aiohttp.ClientSession(base_url=self.__base_url)
 
     async def parse_tracks_list(self, tracks_list_url: str) -> TracksListDTO:
@@ -257,7 +253,7 @@ class YandexMusicServiceImpl(YandexMusicService):
             map_url=get_dict_value_or_none(concert, 'mapUrl'),
             images=concert_images if concert_images is not None else [],
             min_price=min_price,
-            artists=[YandexMusicServiceImpl.__extract_artist(concert_artist)]
+            artists=[YandexMusicService.__extract_artist(concert_artist)]
         )
 
     @staticmethod
@@ -274,7 +270,7 @@ class YandexMusicServiceImpl(YandexMusicService):
         for short_track in get_dict_value(playlist, 'tracks'):
             track: dict = get_dict_value(short_track, 'track')
             for a in get_dict_value(track, 'artists'):
-                artists.add(YandexMusicServiceImpl.__extract_artist(a))
+                artists.add(YandexMusicService.__extract_artist(a))
 
         return TracksListDTO(
             url=url,
@@ -299,7 +295,7 @@ class YandexMusicServiceImpl(YandexMusicService):
             url=url,
             title=get_dict_value(album, 'title'),
             image_link=None,  # TODO
-            artists=list(set([YandexMusicServiceImpl.__extract_artist(a) for a in artists]))
+            artists=list(set([YandexMusicService.__extract_artist(a) for a in artists]))
         )
 
     @staticmethod

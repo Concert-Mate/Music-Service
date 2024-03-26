@@ -1,9 +1,9 @@
 import asyncio
 import unittest
 
-from tests.utils import async_test
+from tests.utils import async_timeout_test
 
-from music_service.v1.service.yandex_music_service import YandexMusicService, YandexMusicServiceImpl, NotFoundException
+from app.services.yandex_music_service import YandexMusicService, NotFoundException
 
 
 class TestYandexMusicServiceImpl(unittest.TestCase):
@@ -59,51 +59,52 @@ class TestYandexMusicServiceImpl(unittest.TestCase):
         self.loop = asyncio.get_event_loop()
 
         async def run():
-            self.__service = YandexMusicServiceImpl()
+            self.__service = YandexMusicService()
+            await self.__service.setup()
 
         self.loop.run_until_complete(run())
 
-    @async_test
+    @async_timeout_test
     async def test_known_artists_info(self):
         for i in self.__known_artists_ids:
             await self.__test_known_artist_info(i)
 
-    @async_test
+    @async_timeout_test
     async def test_unknown_artists_info(self):
         for i in self.__unknown_artists_ids:
             await self.__test_unknown_artist_info(i)
 
-    @async_test
+    @async_timeout_test
     async def test_known_artists_concerts(self):
         for i in self.__known_artists_ids:
             await self.__test_known_artist_concerts(i)
 
-    @async_test
+    @async_timeout_test
     async def test_unknown_artists_concerts(self):
         for i in self.__unknown_artists_ids:
             await self.__test_unknown_artist_concerts(i)
 
-    @async_test
+    @async_timeout_test
     async def test_known_playlists(self):
         for i in self.__known_playlists_urls:
             await self.__test_known_playlist(i)
 
-    @async_test
+    @async_timeout_test
     async def test_unknown_playlists(self):
         for i in self.__unknown_playlists_urls:
             await self.__test_unknown_playlist(i)
 
-    @async_test
+    @async_timeout_test
     async def test_known_albums(self):
         for i in self.__known_albums_urls:
             await self.__test_known_album(i)
 
-    @async_test
+    @async_timeout_test
     async def test_unknown_albums(self):
         for i in self.__unknown_albums_urls:
             await self.__test_unknown_album(i)
 
-    @async_test
+    @async_timeout_test
     async def test_invalid_tracks_lists(self):
         for i in self.__invalid_tracks_lists_urls:
             await self.__test_invalid_tracks_list(i)
