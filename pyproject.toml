@@ -6,6 +6,7 @@ package-mode = false
 python = "^3.10"
 aiohttp = "^3.9.3"
 fastapi = "^0.110.1"
+mypy = "^1.9.0"
 
 
 [build-system]
