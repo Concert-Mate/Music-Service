@@ -20,7 +20,7 @@ app: FastAPI = FastAPI(
 )
 
 
-@app.get('/concerts', response_model=list[Concert])
+@app.get('/concerts')
 async def get_concerts(artist_id: int) -> list[Concert]:
     try:
         return await yandex_music_service.parse_concerts(artist_id)
@@ -28,7 +28,7 @@ async def get_concerts(artist_id: int) -> list[Concert]:
         raise HTTPException(status_code=404, detail=str(e))
 
 
-@app.get('/tracks-lists', response_model=TracksList)
+@app.get('/tracks-lists')
 async def get_tracks_list_info(url: str) -> TracksList:
     try:
         return await yandex_music_service.parse_tracks_list(url)
