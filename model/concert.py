@@ -1,13 +1,13 @@
-from dataclasses import dataclass
 from datetime import datetime
 from typing import Optional
 
-from .artist_dto import ArtistDTO
-from .price_dto import PriceDTO
+from pydantic import BaseModel, Field
+
+from .artist import Artist
+from .price import Price
 
 
-@dataclass(frozen=True)
-class ConcertDTO:
+class Concert(BaseModel):
     title: str
     afisha_url: str
     city: Optional[str]
@@ -16,5 +16,5 @@ class ConcertDTO:
     datetime: Optional[datetime]
     map_url: Optional[str]
     images: list[str]
-    min_price: Optional[PriceDTO]
-    artists: list[ArtistDTO]
+    min_price: Optional[Price]
+    artists: list[Artist] = Field(min_length=1)

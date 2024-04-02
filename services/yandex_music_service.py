@@ -4,8 +4,8 @@ from typing import Optional, Any
 
 import aiohttp
 
+from model import Concert, Price, Artist, TracksList
 from .exceptions import NotFoundException, InternalServiceErrorException
-from app.model.dto import ConcertDTO, PriceDTO, ArtistDTO, TracksListDTO
 
 
 def get_dict_value(d: dict, key: str) -> Any:
@@ -55,7 +55,7 @@ class YandexMusicService:
     async def setup(self) -> None:
         self.__session = aiohttp.ClientSession(base_url=self.__base_url)
 
-    async def parse_tracks_list(self, tracks_list_url: str) -> TracksListDTO:
+    async def parse_tracks_list(self, tracks_list_url: str) -> TracksList:
         playlist_match: re.Match = re.match(self.__playlist_url_pattern, tracks_list_url)
         if playlist_match is not None:
             return await self.__parse_playlist(
@@ -73,7 +73,7 @@ class YandexMusicService:
 
         raise NotFoundException(f'Tracks list "{tracks_list_url}" not found')
 
-    async def parse_concerts(self, artist_id: int) -> list[ConcertDTO]:
+    async def parse_concerts(self, artist_id: int) -> list[Concert]:
         uri: str = self.__create_artist_brief_info_api_uri(artist_id)
         not_found_message: str = f'Artist "{artist_id}" not found'
         yandex_music_json: dict = await self.__fetch_artist_data(uri=uri, not_found_message=not_found_message)
@@ -84,7 +84,7 @@ class YandexMusicService:
         except Exception as e:
             raise InternalServiceErrorException(f'Parsing concerts of artist "{artist_id}" failed') from e
 
-    async def parse_artist(self, artist_id: int) -> ArtistDTO:
+    async def parse_artist(self, artist_id: int) -> Artist:
         uri: str = self.__create_artist_api_uri(artist_id)
         not_found_message: str = f'Artist "{artist_id}" not found'
         yandex_music_json: dict = await self.__fetch_artist_data(uri=uri, not_found_message=not_found_message)
@@ -97,14 +97,14 @@ class YandexMusicService:
     async def terminate(self) -> None:
         await self.__session.close()
 
-    async def __parse_playlist(self, url: str, user_id: str, playlist_id: str) -> TracksListDTO:
+    async def __parse_playlist(self, url: str, user_id: str, playlist_id: str) -> TracksList:
         """
         Parses Yandex Music playlist and returns :class:`TracksListDTO`.
 
         :param url: URL of playlist.
         :param user_id: id of playlist owner on Yandex Music.
         :param playlist_id: id of playlist on Yandex Music.
-        :raises NotFoundException: playlist not found (it can by private, for example).
+        :raises NotFoundException: playlist not found (it can be private, for example).
         :raises InternalServiceErrorException: internal error occurred during parsing the playlist.
         """
 
@@ -121,7 +121,7 @@ class YandexMusicService:
         except Exception as e:
             raise InternalServiceErrorException(f'Parsing playlist "{url}" failed') from e
 
-    async def __parse_album(self, url: str, album_id: str) -> TracksListDTO:
+    async def __parse_album(self, url: str, album_id: str) -> TracksList:
         """
         Parses Yandex Music album and returns :class:`TracksListDTO`.
 
@@ -218,7 +218,7 @@ class YandexMusicService:
             raise InternalServiceErrorException(f'Yandex Music API returned "{status} {response.reason}" for {uri}')
 
     @staticmethod
-    def __extract_concert(concert: dict) -> ConcertDTO:
+    def __extract_concert(concert: dict) -> Concert:
         """
         Extracts :class:`ConcertDTO` from Yandex Music API JSON-dictionary of concert.
 
@@ -239,11 +239,11 @@ class YandexMusicService:
         if concert_min_price_dict:
             concert_min_price_value: int = int(get_dict_value(concert_min_price_dict, 'value'))
             concert_min_price_currency = get_dict_value(concert_min_price_dict, 'currency')
-            min_price: Optional[PriceDTO] = PriceDTO(price=concert_min_price_value, currency=concert_min_price_currency)
+            min_price: Optional[Price] = Price(price=concert_min_price_value, currency=concert_min_price_currency)
         else:
-            min_price: Optional[PriceDTO] = None
+            min_price: Optional[Price] = None
 
-        return ConcertDTO(
+        return Concert(
             title=get_dict_value(concert, 'concertTitle'),
             afisha_url=get_dict_value(concert, 'afishaUrl'),
             city=get_dict_value_or_none(concert, 'city'),
@@ -257,7 +257,7 @@ class YandexMusicService:
         )
 
     @staticmethod
-    def __extract_playlist(url: str, playlist: dict) -> TracksListDTO:
+    def __extract_playlist(url: str, playlist: dict) -> TracksList:
         """
         Extracts :class:`TracksListDTO` from Yandex Music API JSON-dictionary of playlist.
 
@@ -266,13 +266,13 @@ class YandexMusicService:
         :raises KeyError: Yandex Music API JSON-dictionary doesn't have all required keys.
         """
 
-        artists: set[ArtistDTO] = set()
+        artists: set[Artist] = set()
         for short_track in get_dict_value(playlist, 'tracks'):
             track: dict = get_dict_value(short_track, 'track')
             for a in get_dict_value(track, 'artists'):
                 artists.add(YandexMusicService.__extract_artist(a))
 
-        return TracksListDTO(
+        return TracksList(
             url=url,
             title=get_dict_value(playlist, 'title'),
             image_link=None,  # TODO
@@ -280,7 +280,7 @@ class YandexMusicService:
         )
 
     @staticmethod
-    def __extract_album(url: str, album: dict) -> TracksListDTO:
+    def __extract_album(url: str, album: dict) -> TracksList:
         """
         Extracts :class:`TracksListDTO` from Yandex Music API JSON-dictionary of album.
 
@@ -289,17 +289,19 @@ class YandexMusicService:
         :raises KeyError: Yandex Music API JSON-dictionary doesn't have all required keys.
         """
 
-        artists: list[dict] = get_dict_value(album, 'artists')
+        artists_dicts: list[dict] = get_dict_value(album, 'artists')
+        parsed_artists: list[Artist] = [YandexMusicService.__extract_artist(a) for a in artists_dicts]
+        unique_parsed_artists = list(set(parsed_artists))
 
-        return TracksListDTO(
+        return TracksList(
             url=url,
             title=get_dict_value(album, 'title'),
             image_link=None,  # TODO
-            artists=list(set([YandexMusicService.__extract_artist(a) for a in artists]))
+            artists=unique_parsed_artists
         )
 
     @staticmethod
-    def __extract_artist(artist: dict) -> ArtistDTO:
+    def __extract_artist(artist: dict) -> Artist:
         """
         Extracts :class:`ArtistDTO` from Yandex Music API JSON-dictionary of artist.
 
@@ -307,7 +309,7 @@ class YandexMusicService:
         :raises KeyError: Yandex Music API JSON-dictionary doesn't have all required keys.
         """
 
-        return ArtistDTO(
+        return Artist(
             name=get_dict_value(artist, 'name'),
             yandex_music_id=get_dict_value(artist, 'id')
         )

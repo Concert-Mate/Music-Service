@@ -1,8 +1,7 @@
 from fastapi import FastAPI
-from uvicorn import run
-from app.settings import settings
-from app.services import YandexMusicService
-from app.routes import ConcertsRouter
+
+from model import Concert, TracksList
+from services import YandexMusicService
 
 
 async def on_startup() -> None:
@@ -18,8 +17,13 @@ app: FastAPI = FastAPI(
     on_startup=[on_startup],
     on_shutdown=[on_shutdown]
 )
-app.include_router(ConcertsRouter(yandex_music_service).router)
 
 
-if __name__ == '__main__':
-    run(app=app, host=settings.host, port=settings.port)
+@app.get('/concerts', response_model=list[Concert])
+async def get_concerts(artist_id: int):
+    return await yandex_music_service.parse_concerts(artist_id)
+
+
+@app.get('/tracks-list', response_model=TracksList)
+async def get_concerts(url: str):
+    return await yandex_music_service.parse_tracks_list(url)
