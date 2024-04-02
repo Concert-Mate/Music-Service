@@ -24,6 +24,6 @@ async def get_concerts(artist_id: int) -> list[Concert]:
     return await yandex_music_service.parse_concerts(artist_id)
 
 
-@app.get('/tracks-list', response_model=TracksList)
+@app.get('/tracks-lists', response_model=TracksList)
 async def get_tracks_list_info(url: str) -> TracksList:
     return await yandex_music_service.parse_tracks_list(url)
