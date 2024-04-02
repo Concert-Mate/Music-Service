@@ -1,16 +1,9 @@
 # How to launch
 
 ```bash
-poetry run -vvv python app.py
+uvicorn main:app --reload
 ```
 
-> `poetry run -vvv` runs python in poetry-environment and uses its plugin to read `.env` and load variables to environment.
+# Documentation
 
-> Server reads `PORT` and `HOST` from `.env`. Default values can be found in `app/settings.py`
-
-
-# How to run tests?
-
-```bash
-python -m unittest discover tests
-```
+You can see documentation of launched server at `/docs`. There you can also make requests.
