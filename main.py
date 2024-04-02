@@ -1,7 +1,8 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 
 from model import Concert, TracksList
 from services import YandexMusicService
+from services.exceptions import NotFoundException
 
 
 async def on_startup() -> None:
@@ -21,9 +22,15 @@ app: FastAPI = FastAPI(
 
 @app.get('/concerts', response_model=list[Concert])
 async def get_concerts(artist_id: int) -> list[Concert]:
-    return await yandex_music_service.parse_concerts(artist_id)
+    try:
+        return await yandex_music_service.parse_concerts(artist_id)
+    except NotFoundException as e:
+        raise HTTPException(status_code=404, detail=str(e))
 
 
 @app.get('/tracks-lists', response_model=TracksList)
 async def get_tracks_list_info(url: str) -> TracksList:
-    return await yandex_music_service.parse_tracks_list(url)
+    try:
+        return await yandex_music_service.parse_tracks_list(url)
+    except NotFoundException as e:
+        raise HTTPException(status_code=404, detail=str(e))

@@ -73,7 +73,7 @@ class YandexMusicService:
                 album_id=album_math_match.group(1)
             )
 
-        raise NotFoundException(f'Tracks list "{tracks_list_url}" not found')
+        raise NotFoundException(f'Tracks list {tracks_list_url}" not found')
 
     async def parse_concerts(self, artist_id: int) -> list[Concert]:
         uri: str = self.__create_artist_brief_info_api_uri(artist_id)
