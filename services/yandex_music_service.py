@@ -58,6 +58,14 @@ class YandexMusicService:
         self.__session = aiohttp.ClientSession(base_url=self.__base_url)
 
     async def parse_tracks_list(self, tracks_list_url: str) -> TracksList:
+        """
+        Parses playlist/album of Yandex Music.
+
+        :param tracks_list_url: URL of playlist/album of Yandex Music.
+        :raises NotFoundException: playlist/album of Yandex Music not found on the URL.
+        :raises InternalServiceErrorException: internal service error occurred.
+        """
+
         playlist_match: Optional[re.Match[str]] = re.match(self.__playlist_url_pattern, tracks_list_url)
         if playlist_match is not None:
             return await self.__parse_playlist(
@@ -76,6 +84,14 @@ class YandexMusicService:
         raise NotFoundException(f'Tracks list {tracks_list_url}" not found')
 
     async def parse_concerts(self, artist_id: int) -> list[Concert]:
+        """
+        Parses actual concerts of artist from Yandex Music.
+
+        :param artist_id: id of artist on Yandex Music.
+        :raises NotFoundException: artist with this id on Yandex Music not found.
+        :raises InternalServiceErrorException: internal service error occurred.
+        """
+
         uri: str = self.__create_artist_brief_info_api_uri(artist_id)
         not_found_message: str = f'Artist "{artist_id}" not found'
         yandex_music_json: str_dict = await self.__fetch_artist_data(uri=uri, not_found_message=not_found_message)
@@ -87,6 +103,14 @@ class YandexMusicService:
             raise InternalServiceErrorException(f'Parsing concerts of artist "{artist_id}" failed') from e
 
     async def parse_artist(self, artist_id: int) -> Artist:
+        """
+        Parses basic information about artist from Yandex Music.
+
+        :param artist_id: id of artist on Yandex Music.
+        :raises NotFoundException: artist with this id on Yandex Music not found.
+        :raises InternalServiceErrorException: internal service error occurred.
+        """
+
         uri: str = self.__create_artist_api_uri(artist_id)
         not_found_message: str = f'Artist "{artist_id}" not found'
         yandex_music_json: str_dict = await self.__fetch_artist_data(uri=uri, not_found_message=not_found_message)
@@ -97,6 +121,10 @@ class YandexMusicService:
             raise InternalServiceErrorException(f'Parsing info about artist "{artist_id}" failed') from e
 
     async def terminate(self) -> None:
+        """
+        Terminates service and frees all underlying resources.
+        """
+
         await self.__session.close()
 
     async def __parse_playlist(self, url: str, user_id: str, playlist_id: str) -> TracksList:
