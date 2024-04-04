@@ -1,4 +1,14 @@
-# How to launch
+# Creating venv
+
+```bash
+poetry shell
+```
+
+```bash
+poetry install
+```
+
+# Launch
 
 ```bash
 uvicorn main:app --reload
@@ -8,7 +18,7 @@ uvicorn main:app --reload
 
 You can see documentation of launched server at `/docs`. There you can also make requests.
 
-# Run mypy inspection
+# MyPy inspection
 
 ```bash
 mypy main.py --strict
