@@ -1,10 +1,10 @@
-import asyncio
+from typing import Any
 
 from fastapi import FastAPI, HTTPException, status
 from fastapi_cache import FastAPICache
 from fastapi_cache.backends.redis import RedisBackend
 from fastapi_cache.decorator import cache
-from redis import asyncio as aioredis, Redis
+from redis import asyncio as aioredis
 
 from model import Concert, TracksList
 from services import NotFoundException, InternalServiceErrorException
@@ -12,11 +12,11 @@ from services import YandexMusicService
 from settings import settings
 
 yandex_music_service = YandexMusicService()
-app: FastAPI = FastAPI()
-redis: Redis = aioredis.from_url(f'redis://:{settings.redis_password}@{settings.redis_host}:{settings.redis_port}')
+redis: aioredis.Redis[Any] = aioredis.from_url(
+    f'redis://:{settings.redis_password}@{settings.redis_host}:{settings.redis_port}'
+)
 
 
-@app.on_event("startup")
 async def startup() -> None:
     await yandex_music_service.setup()
 
@@ -24,10 +24,15 @@ async def startup() -> None:
     FastAPICache.init(RedisBackend(redis), prefix="fastapi-cache")
 
 
-@app.on_event("shutdown")
 async def shutdown() -> None:
     await yandex_music_service.terminate()
-    redis.close()
+    await redis.close()
+
+
+app: FastAPI = FastAPI(
+    on_startup=[startup],
+    on_shutdown=[shutdown],
+)
 
 
 @app.get('/concerts')
@@ -45,7 +50,6 @@ async def get_concerts(artist_id: int) -> list[Concert]:
 @cache(expire=600)
 async def get_tracks_list_info(url: str) -> TracksList:
     try:
-        await asyncio.sleep(10)
         return await yandex_music_service.parse_tracks_list(url)
     except NotFoundException as e:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
