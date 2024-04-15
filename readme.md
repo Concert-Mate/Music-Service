@@ -14,12 +14,8 @@ poetry install
 uvicorn main:app --reload
 ```
 
+> You can specify environment variables `CONCERTS_EXPIRATION_TIME` and `TRACK_LISTS_EXPIRATION_TIME` (in seconds) for caching. Default values are 60 and 600 respectively 
+
 # Documentation
 
 You can see documentation of launched server at `/docs`. There you can also make requests.
-
-# MyPy inspection
-
-```bash
-mypy main.py --strict
-```
