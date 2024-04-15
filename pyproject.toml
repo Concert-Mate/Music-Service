@@ -6,7 +6,6 @@ package-mode = false
 python = "^3.10"
 aiohttp = "^3.9.4"
 fastapi = "^0.110.1"
-mypy = "^1.9.0"
 uvicorn = "^0.29.0"
 fastapi-cache2 = {extras = ["redis"], version = "^0.2.1"}
 pydantic-settings = "^2.2.1"
