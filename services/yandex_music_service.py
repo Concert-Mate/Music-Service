@@ -4,7 +4,7 @@ from typing import Optional, Any
 
 import aiohttp
 
-from model import Concert, Price, Artist, TracksList
+from model import Concert, Price, Artist, TrackList
 from .exceptions import NotFoundException, InternalServiceErrorException
 
 str_dict = dict[str, Any]
@@ -55,33 +55,37 @@ class YandexMusicService:
     __album_url_pattern: re.Pattern[str] = re.compile(r"^.*/album/(\S+)$")
 
     async def setup(self) -> None:
+        """
+        Sets up the Yandex Music API client. Must be called in async context (where event loop exists).
+        """
+
         self.__session = aiohttp.ClientSession(base_url=self.__base_url)
 
-    async def parse_tracks_list(self, tracks_list_url: str) -> TracksList:
+    async def parse_track_list(self, track_list_url: str) -> TrackList:
         """
         Parses playlist/album of Yandex Music.
 
-        :param tracks_list_url: URL of playlist/album of Yandex Music.
-        :raises NotFoundException: playlist/album of Yandex Music not found on the URL.
+        :param track_list_url: url of playlist/album of Yandex Music.
+        :raises NotFoundException: playlist/album of Yandex Music not found on the url.
         :raises InternalServiceErrorException: internal service error occurred.
         """
 
-        playlist_match: Optional[re.Match[str]] = re.match(self.__playlist_url_pattern, tracks_list_url)
+        playlist_match: Optional[re.Match[str]] = re.match(self.__playlist_url_pattern, track_list_url)
         if playlist_match is not None:
             return await self.__parse_playlist(
-                url=tracks_list_url,
+                url=track_list_url,
                 user_id=playlist_match.group(1),
                 playlist_id=playlist_match.group(2)
             )
 
-        album_math_match: Optional[re.Match[str]] = re.match(self.__album_url_pattern, tracks_list_url)
+        album_math_match: Optional[re.Match[str]] = re.match(self.__album_url_pattern, track_list_url)
         if album_math_match is not None:
             return await self.__parse_album(
-                url=tracks_list_url,
+                url=track_list_url,
                 album_id=album_math_match.group(1)
             )
 
-        raise NotFoundException(f'Tracks list {tracks_list_url}" not found')
+        raise NotFoundException(f'Track list {track_list_url}" not found')
 
     async def parse_concerts(self, artist_id: int) -> list[Concert]:
         """
@@ -127,11 +131,11 @@ class YandexMusicService:
 
         await self.__session.close()
 
-    async def __parse_playlist(self, url: str, user_id: str, playlist_id: str) -> TracksList:
+    async def __parse_playlist(self, url: str, user_id: str, playlist_id: str) -> TrackList:
         """
-        Parses Yandex Music playlist and returns :class:`TracksListDTO`.
+        Parses Yandex Music playlist and returns :class:`TrackList`.
 
-        :param url: URL of playlist.
+        :param url: url of playlist.
         :param user_id: id of playlist owner on Yandex Music.
         :param playlist_id: id of playlist on Yandex Music.
         :raises NotFoundException: playlist not found (it can be private, for example).
@@ -151,11 +155,11 @@ class YandexMusicService:
         except Exception as e:
             raise InternalServiceErrorException(f'Parsing playlist "{url}" failed') from e
 
-    async def __parse_album(self, url: str, album_id: str) -> TracksList:
+    async def __parse_album(self, url: str, album_id: str) -> TrackList:
         """
-        Parses Yandex Music album and returns :class:`TracksListDTO`.
+        Parses Yandex Music album and returns :class:`TrackList`.
 
-        :param url: URL of album.
+        :param url: url of album.
         :param album_id: id of album on Yandex Music.
         :raises NotFoundException: album not found.
         :raises InternalServiceErrorException: internal error occurred during parsing the album.
@@ -250,7 +254,7 @@ class YandexMusicService:
     @staticmethod
     def __extract_concert(concert: str_dict) -> Concert:
         """
-        Extracts :class:`ConcertDTO` from Yandex Music API JSON-dictionary of concert.
+        Extracts :class:`Concert` from Yandex Music API JSON-dictionary of concert.
 
         :param concert: Yandex Music API JSON-dictionary of concert.
         :raises KeyError: Yandex Music API JSON-dictionary doesn't have all required keys.
@@ -285,11 +289,11 @@ class YandexMusicService:
         )
 
     @staticmethod
-    def __extract_playlist(url: str, playlist: str_dict) -> TracksList:
+    def __extract_playlist(url: str, playlist: str_dict) -> TrackList:
         """
-        Extracts :class:`TracksListDTO` from Yandex Music API JSON-dictionary of playlist.
+        Extracts :class:`TrackList` from Yandex Music API JSON-dictionary of playlist.
 
-        :param url: URL of playlist (passed just to be put to :class:`TracksListDTO`).
+        :param url: url of playlist (passed just to be put to :class:`TrackList`).
         :param playlist: Yandex Music API JSON-dictionary of playlist.
         :raises KeyError: Yandex Music API JSON-dictionary doesn't have all required keys.
         """
@@ -300,38 +304,41 @@ class YandexMusicService:
             for a in get_dict_value(track, 'artists'):
                 artists.add(YandexMusicService.__extract_artist(a))
 
-        return TracksList(
+        cover_uri: Optional[str] = get_dict_value_or_none(playlist, 'ogImage')
+
+        return TrackList(
             url=url,
             title=get_dict_value(playlist, 'title'),
-            image_link=None,  # TODO
+            image=YandexMusicService.__get_cover_link(cover_uri),
             artists=list(artists)
         )
 
     @staticmethod
-    def __extract_album(url: str, album: str_dict) -> TracksList:
+    def __extract_album(url: str, album: str_dict) -> TrackList:
         """
-        Extracts :class:`TracksListDTO` from Yandex Music API JSON-dictionary of album.
+        Extracts :class:`TrackList` from Yandex Music API JSON-dictionary of album.
 
-        :param url: URL of album (passed just to be put to :class:`TracksListDTO`).
+        :param url: url of album (passed just to be put to :class:`TrackList`).
         :param album: Yandex Music API JSON-dictionary of album.
         :raises KeyError: Yandex Music API JSON-dictionary doesn't have all required keys.
         """
 
-        artists_dicts: list[str_dict] = get_dict_value(album, 'artists')
-        parsed_artists: list[Artist] = [YandexMusicService.__extract_artist(a) for a in artists_dicts]
+        artist_dicts: list[str_dict] = get_dict_value(album, 'artists')
+        parsed_artists: list[Artist] = [YandexMusicService.__extract_artist(a) for a in artist_dicts]
         unique_parsed_artists = list(set(parsed_artists))
+        cover_uri: Optional[str] = get_dict_value_or_none(album, 'ogImage')
 
-        return TracksList(
+        return TrackList(
             url=url,
             title=get_dict_value(album, 'title'),
-            image_link=None,  # TODO
+            image=YandexMusicService.__get_cover_link(cover_uri),
             artists=unique_parsed_artists
         )
 
     @staticmethod
     def __extract_artist(artist: str_dict) -> Artist:
         """
-        Extracts :class:`ArtistDTO` from Yandex Music API JSON-dictionary of artist.
+        Extracts :class:`Artist` from Yandex Music API JSON-dictionary of artist.
 
         :param artist: Yandex Music API JSON-dictionary of artist.
         :raises KeyError: Yandex Music API JSON-dictionary doesn't have all required keys.
@@ -345,7 +352,7 @@ class YandexMusicService:
     @staticmethod
     def __create_artist_brief_info_api_uri(artist_id: int) -> str:
         """
-        Returns URL of artist's brief info on Yandex Music.
+        Returns url of artist's brief info on Yandex Music.
 
         :param artist_id: id of artist on Yandex Music.
         """
@@ -355,7 +362,7 @@ class YandexMusicService:
     @staticmethod
     def __create_artist_api_uri(artist_id: int) -> str:
         """
-        Returns URL of artist on Yandex Music.
+        Returns url of artist on Yandex Music.
 
         :param artist_id: id of artist on Yandex Music.
         """
@@ -365,7 +372,7 @@ class YandexMusicService:
     @staticmethod
     def __create_playlist_api_uri(user_id: str, playlist_id: str) -> str:
         """
-        Returns URL of playlist on Yandex Music.
+        Returns url of playlist on Yandex Music.
 
         :param user_id: id of user on Yandex Music.
         :param playlist_id: id of user's playlist on Yandex Music.
@@ -376,9 +383,24 @@ class YandexMusicService:
     @staticmethod
     def __create_album_api_uri(album_id: str) -> str:
         """
-        Returns URL of album on Yandex Music.
+        Returns url of album on Yandex Music.
 
         :param album_id: id of album on Yandex Music.
         """
 
         return f'/albums/{album_id}'
+
+    @staticmethod
+    def __get_cover_link(abstract_uri: Optional[str]) -> Optional[str]:
+        """
+        Returns url of album/playlist link with size 400x400.
+
+        Example of abstract_uri:
+
+        avatars.yandex.net/get-music-content/5966316/a134df77.a.23033323-1/%%
+
+        :param abstract_uri: abstract url of album/playlist cover.
+
+        """
+
+        return None if abstract_uri is None else f'https://{abstract_uri[:-2]}400x400'
