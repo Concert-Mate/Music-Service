@@ -1,11 +1,11 @@
-from uvicorn.config import logger
 from fastapi import FastAPI, HTTPException, status
 from fastapi_cache import FastAPICache
 from fastapi_cache.backends.redis import RedisBackend
 from fastapi_cache.decorator import cache
 from redis.asyncio import Redis, from_url as redis_from_url
+from uvicorn.config import logger
 
-from model import Concert, TracksList
+from model import Concert, TrackList
 from services import NotFoundException, InternalServiceErrorException
 from services import YandexMusicService
 from settings import settings
@@ -52,10 +52,11 @@ async def get_concerts(artist_id: int) -> list[Concert]:
 
 @app.get('/tracks-lists')
 @cache(expire=settings.track_lists_expiration_time)
-async def get_tracks_list_info(url: str) -> TracksList:
+async def get_tracks_list_info(url: str) -> TrackList:
     try:
-        return await yandex_music_service.parse_tracks_list(url)
+        return await yandex_music_service.parse_track_list(url)
     except NotFoundException as e:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e)) from e
     except InternalServiceErrorException as e:
+        print(e)
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e)) from e

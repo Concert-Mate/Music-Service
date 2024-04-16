@@ -5,8 +5,8 @@ from pydantic import BaseModel
 from .artist import Artist
 
 
-class TracksList(BaseModel):
+class TrackList(BaseModel):
     url: str
     title: str
-    image_link: Optional[str]
+    image: Optional[str]
     artists: list[Artist]

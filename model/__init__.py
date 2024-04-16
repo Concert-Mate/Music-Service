@@ -2,10 +2,10 @@ __all__ = [
     'Artist',
     'Concert',
     'Price',
-    'TracksList'
+    'TrackList'
 ]
 
 from .artist import Artist
 from .concert import Concert
 from .price import Price
-from .tracks_list import TracksList
+from .track_list import TrackList
