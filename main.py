@@ -50,7 +50,7 @@ async def get_concerts(artist_id: int) -> list[Concert]:
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e)) from e
 
 
-@app.get('/tracks-lists')
+@app.get('/track-lists')
 @cache(expire=settings.track_lists_expiration_time)
 async def get_tracks_list_info(url: str) -> TrackList:
     try:
