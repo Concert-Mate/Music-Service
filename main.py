@@ -1,3 +1,4 @@
+from uvicorn.config import logger
 from fastapi import FastAPI, HTTPException, status
 from fastapi_cache import FastAPICache
 from fastapi_cache.backends.redis import RedisBackend
@@ -18,8 +19,13 @@ redis: Redis = redis_from_url(
 async def startup() -> None:
     await yandex_music_service.setup()
 
-    await redis.ping()  # Check redis connection and auth
+    # If connection fail, server will continue working, but without caching
     FastAPICache.init(RedisBackend(redis), prefix="fastapi-cache")
+
+    try:
+        await redis.ping()  # Check redis connection and auth
+    except Exception as e:
+        logger.warning(f'Failed to initialize redis cache: {e}')
 
 
 async def shutdown() -> None:
