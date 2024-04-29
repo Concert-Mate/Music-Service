@@ -8,7 +8,13 @@ poetry shell
 poetry install
 ```
 
-# Launch
+# Launch Redis for caching
+
+```bash
+docker compose up -d
+```
+
+# Launch server
 
 ```bash
 uvicorn main:app
