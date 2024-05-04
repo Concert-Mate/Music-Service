@@ -1,12 +1,12 @@
 from typing import Optional
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from .artist import Artist
 
 
 class TrackList(BaseModel):
-    url: str
-    title: str
-    image: Optional[str]
+    url: str = Field(min_length=1)
+    title: str = Field(min_length=1)
+    image: Optional[str] = None
     artists: list[Artist]

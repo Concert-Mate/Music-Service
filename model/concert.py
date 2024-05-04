@@ -8,13 +8,13 @@ from .price import Price
 
 
 class Concert(BaseModel):
-    title: str
-    afisha_url: str
-    city: str
-    place: Optional[str]
-    address: str
+    title: str = Field(min_length=1)
+    afisha_url: str = Field(min_length=1)
+    city: str = Field(min_length=1)
+    place: Optional[str] = None
+    address: str = Field(min_length=1)
     datetime: datetime
-    map_url: Optional[str]
+    map_url: Optional[str] = None
     images: list[str]
-    min_price: Optional[Price]
+    min_price: Optional[Price] = None
     artists: list[Artist] = Field(min_length=1)

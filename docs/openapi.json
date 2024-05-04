@@ -90,6 +90,7 @@
         "properties": {
           "name": {
             "type": "string",
+            "minLength": 1,
             "title": "Name"
           },
           "yandex_music_id": {
@@ -109,14 +110,17 @@
         "properties": {
           "title": {
             "type": "string",
+            "minLength": 1,
             "title": "Title"
           },
           "afisha_url": {
             "type": "string",
+            "minLength": 1,
             "title": "Afisha Url"
           },
           "city": {
             "type": "string",
+            "minLength": 1,
             "title": "City"
           },
           "place": {
@@ -132,6 +136,7 @@
           },
           "address": {
             "type": "string",
+            "minLength": 1,
             "title": "Address"
           },
           "datetime": {
@@ -181,12 +186,9 @@
           "title",
           "afisha_url",
           "city",
-          "place",
           "address",
           "datetime",
-          "map_url",
           "images",
-          "min_price",
           "artists"
         ],
         "title": "Concert"
@@ -244,6 +246,7 @@
           },
           "currency": {
             "type": "string",
+            "minLength": 1,
             "title": "Currency"
           }
         },
@@ -288,10 +291,12 @@
         "properties": {
           "url": {
             "type": "string",
+            "minLength": 1,
             "title": "Url"
           },
           "title": {
             "type": "string",
+            "minLength": 1,
             "title": "Title"
           },
           "image": {
@@ -317,7 +322,6 @@
         "required": [
           "url",
           "title",
-          "image",
           "artists"
         ],
         "title": "TrackList"
