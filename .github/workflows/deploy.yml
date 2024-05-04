@@ -23,6 +23,8 @@ jobs:
             cd ~/Music-Service
             git reset --hard
             git pull origin main
-            echo "REDIS_PASSWORD=password" > .env
-            echo "REDIS_HOST=redis" >> .env
+             cat << EOF > .env
+            REDIS_PASSWORD=${{ secrets.REDIS_PASSWORD }}
+            REDIS_HOST=${{ secrets.REDIS_HOST }}
+            EOF
             docker compose -f deploy.yml up --build -d --force-recreate
