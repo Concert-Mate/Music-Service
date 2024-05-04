@@ -260,10 +260,7 @@ class YandexMusicService:
         :raises KeyError: Yandex Music API JSON-dictionary doesn't have all required keys.
         """
 
-        concert_datetime_dict: Optional[str] = get_dict_value_or_none(concert, 'datetime')
-        concert_datetime: Optional[datetime] = None
-        if concert_datetime_dict:
-            concert_datetime = datetime.strptime(concert_datetime_dict, '%Y-%m-%dT%H:%M:%S%z')
+        concert_datetime = datetime.strptime(get_dict_value(concert, 'datetime'), '%Y-%m-%dT%H:%M:%S%z')
 
         concert_images: Optional[list[str]] = get_dict_value_or_none(concert, 'images')
         concert_artist: str_dict = get_dict_value(concert, 'artist')
@@ -278,11 +275,11 @@ class YandexMusicService:
         return Concert(
             title=get_dict_value(concert, 'concertTitle'),
             afisha_url=get_dict_value(concert, 'afishaUrl'),
-            city=get_dict_value_or_none(concert, 'city'),
+            city=get_dict_value(concert, 'city'),
             place=get_dict_value_or_none(concert, 'place'),
-            address=get_dict_value_or_none(concert, 'address'),
+            address=get_dict_value(concert, 'address'),
             datetime=concert_datetime,
-            map_url=get_dict_value_or_none(concert, 'mapUrl'),
+            map_url=get_dict_value(concert, 'mapUrl'),
             images=concert_images if concert_images is not None else [],
             min_price=min_price,
             artists=[YandexMusicService.__extract_artist(concert_artist)]

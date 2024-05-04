@@ -10,10 +10,10 @@ from .price import Price
 class Concert(BaseModel):
     title: str
     afisha_url: str
-    city: Optional[str]
+    city: str
     place: Optional[str]
-    address: Optional[str]
-    datetime: Optional[datetime]
+    address: str
+    datetime: datetime
     map_url: Optional[str]
     images: list[str]
     min_price: Optional[Price]
