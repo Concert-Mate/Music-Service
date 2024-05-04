@@ -21,9 +21,8 @@ jobs:
           script: |
             whoami
             cd ~/Music-Service
-            docker compose -f deploy.yml down
             git reset --hard
             git pull origin main
             echo "REDIS_PASSWORD=password" > .env
             echo "REDIS_HOST=redis" >> .env
-            docker compose -f deploy.yml up -d
+            docker compose -f deploy.yml up --build -d --force-recreate
