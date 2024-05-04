@@ -43,16 +43,18 @@ app: FastAPI = FastAPI(
 @app.get('/concerts')
 @cache(expire=settings.concerts_expiration_time)
 async def get_concerts(artist_id: int) -> ConcertsResponse:
+    status: ResponseStatus
+
     try:
         concerts: list[Concert] = await yandex_music_service.parse_concerts(artist_id)
         return ConcertsResponse(concerts=concerts)
     except NotFoundException as e:
-        status: ResponseStatus = ResponseStatus(
+        status = ResponseStatus(
             code=ResponseCode.ARTIST_NOT_FOUND,
             message=str(e),
         )
     except InternalServiceErrorException as e:
-        status: ResponseStatus = ResponseStatus(
+        status = ResponseStatus(
             code=ResponseCode.ARTIST_NOT_FOUND,
             message=str(e),
         )
@@ -63,16 +65,18 @@ async def get_concerts(artist_id: int) -> ConcertsResponse:
 @app.get('/track-lists')
 @cache(expire=settings.track_lists_expiration_time)
 async def get_tracks_list_info(url: str) -> TrackListResponse:
+    status: ResponseStatus
+
     try:
         track_list: TrackList = await yandex_music_service.parse_track_list(url)
         return TrackListResponse(track_list=track_list)
     except NotFoundException as e:
-        status: ResponseStatus = ResponseStatus(
+        status = ResponseStatus(
             code=ResponseCode.TRACK_LIST_NOT_FOUND,
             message=str(e),
         )
     except InternalServiceErrorException as e:
-        status: ResponseStatus = ResponseStatus(
+        status = ResponseStatus(
             code=ResponseCode.INTERNAL_ERROR,
             message=str(e),
         )
