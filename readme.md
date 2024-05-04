@@ -1,4 +1,26 @@
-# Creating virtual environment
+# Описание
+
+Music-Service - микросервис, отвечающий за получение информации о плейлистах, альбомах и концертах, работающих по RestfulAPI.
+
+# Документация
+
+Документацию к API можно посмотреть по `/docs` запущенного сервера (там же можно делать запросы), а также [здесь](docs/openapi.json).
+
+# Конфигурация
+
+* `REDIS_HOST` - хост Redis (значение по умолчанию - `localhost`)
+* `REDIS_PORT` - порт Redis (значение по умолчанию - `6379`)
+* `REDIS_PASSWORD` - пароль для Redis (значение по умолчанию - `password`)
+* `CONCERTS_EXPIRATION_TIME` - время в секундах, на которое будут кэшироваться ответы на запросы о получении информации о концертах (значение по умолчанию - `60`)
+* `TRACK_LISTS_EXPIRATION_TIME` - время в секундах, на которое будут кэшироваться ответы на запросы о получении информации о плейлистах и альбомах (значение по умолчанию - `60`)
+
+# Запуск Redis
+
+```bash
+docker compose up -d
+```
+
+# Создание виртуального окружения
 
 ```bash
 poetry shell
@@ -8,22 +30,10 @@ poetry shell
 poetry install
 ```
 
-# Launch Redis for caching
-
-```bash
-docker compose up -d
-```
-
-# Launch server
+# Запуск микросервиса
 
 ```bash
 uvicorn main:app
 ```
 
-> You can specify arguments `--port` and `--host` (default values are 8000 and 127.0.0.1)
-
-> You can specify environment variables `CONCERTS_EXPIRATION_TIME` and `TRACK_LISTS_EXPIRATION_TIME` (in seconds) for caching. Default values are 60 and 600 respectively 
-
-# Documentation
-
-You can see documentation of launched server at `/docs`. There you can also make requests.
+> Можно указать аргументы `--port` and `--host` (значения по умолчанию - 8000 and 127.0.0.1 соответственно)

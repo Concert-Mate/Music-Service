@@ -1,0 +1,408 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "FastAPI",
+    "version": "0.1.0"
+  },
+  "paths": {
+    "/concerts": {
+      "get": {
+        "summary": "Get Concerts",
+        "operationId": "get_concerts_concerts_get",
+        "parameters": [
+          {
+            "name": "artist_id",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Artist Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConcertsResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/track-lists": {
+      "get": {
+        "summary": "Get Tracks List Info",
+        "operationId": "get_tracks_list_info_track_lists_get",
+        "parameters": [
+          {
+            "name": "url",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Url"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TrackListResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "Artist": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "yandex_music_id": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Yandex Music Id"
+          }
+        },
+        "type": "object",
+        "required": [
+          "name",
+          "yandex_music_id"
+        ],
+        "title": "Artist"
+      },
+      "Concert": {
+        "properties": {
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "afisha_url": {
+            "type": "string",
+            "title": "Afisha Url"
+          },
+          "city": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "City"
+          },
+          "place": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Place"
+          },
+          "address": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Address"
+          },
+          "datetime": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Datetime"
+          },
+          "map_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Map Url"
+          },
+          "images": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Images"
+          },
+          "min_price": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Price"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "artists": {
+            "items": {
+              "$ref": "#/components/schemas/Artist"
+            },
+            "type": "array",
+            "minItems": 1,
+            "title": "Artists"
+          }
+        },
+        "type": "object",
+        "required": [
+          "title",
+          "afisha_url",
+          "city",
+          "place",
+          "address",
+          "datetime",
+          "map_url",
+          "images",
+          "min_price",
+          "artists"
+        ],
+        "title": "Concert"
+      },
+      "ConcertsResponse": {
+        "properties": {
+          "status": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ResponseStatus"
+              }
+            ],
+            "default": {
+              "code": 0,
+              "message": "SUCCESS"
+            }
+          },
+          "concerts": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/Concert"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Concerts"
+          }
+        },
+        "type": "object",
+        "title": "ConcertsResponse"
+      },
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "type": "array",
+            "title": "Detail"
+          }
+        },
+        "type": "object",
+        "title": "HTTPValidationError"
+      },
+      "Price": {
+        "properties": {
+          "price": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Price"
+          },
+          "currency": {
+            "type": "string",
+            "title": "Currency"
+          }
+        },
+        "type": "object",
+        "required": [
+          "price",
+          "currency"
+        ],
+        "title": "Price"
+      },
+      "ResponseCode": {
+        "type": "integer",
+        "enum": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "title": "ResponseCode"
+      },
+      "ResponseStatus": {
+        "properties": {
+          "code": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ResponseCode"
+              }
+            ],
+            "description": "0 - SUCCESS, 1 - INTERNAL_ERROR, 2 - ARTIST_NOT_FOUND, 3 - TRACK_LIST_NOT_FOUND, ",
+            "default": 0
+          },
+          "message": {
+            "type": "string",
+            "title": "Message",
+            "default": "SUCCESS"
+          }
+        },
+        "type": "object",
+        "title": "ResponseStatus"
+      },
+      "TrackList": {
+        "properties": {
+          "url": {
+            "type": "string",
+            "title": "Url"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "image": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Image"
+          },
+          "artists": {
+            "items": {
+              "$ref": "#/components/schemas/Artist"
+            },
+            "type": "array",
+            "title": "Artists"
+          }
+        },
+        "type": "object",
+        "required": [
+          "url",
+          "title",
+          "image",
+          "artists"
+        ],
+        "title": "TrackList"
+      },
+      "TrackListResponse": {
+        "properties": {
+          "status": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ResponseStatus"
+              }
+            ],
+            "default": {
+              "code": 0,
+              "message": "SUCCESS"
+            }
+          },
+          "track_list": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/TrackList"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "type": "object",
+        "title": "TrackListResponse"
+      },
+      "ValidationError": {
+        "properties": {
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "type": "array",
+            "title": "Location"
+          },
+          "msg": {
+            "type": "string",
+            "title": "Message"
+          },
+          "type": {
+            "type": "string",
+            "title": "Error Type"
+          }
+        },
+        "type": "object",
+        "required": [
+          "loc",
+          "msg",
+          "type"
+        ],
+        "title": "ValidationError"
+      }
+    }
+  }
+}
