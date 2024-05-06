@@ -10,7 +10,6 @@ from fastapi_cache.backends.redis import RedisBackend
 from fastapi_cache.decorator import cache
 from redis.asyncio import Redis, from_url as redis_from_url
 from starlette.requests import Request
-from yarl import URL
 
 from model import Concert, TrackList
 from response import ResponseCode, TrackListResponse, ConcertsResponse, ResponseStatus
