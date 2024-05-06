@@ -117,7 +117,7 @@ class YandexMusicService:
 
         try:
             concerts: list[str_dict] = get_dict_value(yandex_music_json, 'concerts')
-            result: [Concert] = [self.__extract_concert(c) for c in concerts]
+            result: list[Concert] = [self.__extract_concert(c) for c in concerts]
             self.__logger.info(f'Parsing concerts of artist {artist_id} succeeded')
             return result
         except Exception as e:
@@ -214,7 +214,7 @@ class YandexMusicService:
 
         self.__logger.info(f'Fetched data from Yandex Music API for album {url}')
 
-        error: Optional[dict] = get_dict_value_or_none(yandex_music_api_data, 'error')
+        error: Optional[str_dict] = get_dict_value_or_none(yandex_music_api_data, 'error')
         if error:
             self.__logger.info(f'Fetched data from Yandex Music API for album {url} contains error: {str(error)}')
             raise NotFoundException(not_found_message)

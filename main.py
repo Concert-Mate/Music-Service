@@ -1,6 +1,8 @@
 import logging.config
 from http import HTTPStatus
+from typing import Optional
 
+import starlette.datastructures
 import starlette.middleware.base
 from fastapi import FastAPI
 from fastapi_cache import FastAPICache
@@ -27,11 +29,11 @@ redis: Redis = redis_from_url(
 )
 
 
-def log_return_success(url: URL) -> None:
+def log_return_success(url: starlette.datastructures.URL) -> None:
     controller_logger.info(f'Returning SUCCESS for {url}')
 
 
-def log_return_error(url: URL, status: ResponseStatus) -> None:
+def log_return_error(url: starlette.datastructures.URL, status: ResponseStatus) -> None:
     controller_logger.info(f'Returning {status.code} - "{status.message}" for {url}')
 
 
@@ -66,15 +68,17 @@ app: FastAPI = FastAPI(
 
 @app.middleware('http')
 async def log_middleware(request: Request, call_next):
+    client: Optional[starlette.datastructures.Address] = request.client
+
     controller_logger.info(
         f'Received %s %s from %s:%s',
         request.method,
         request.url,
-        request.client.host,
-        request.client.port,
+        None if client is None else client.host,
+        None if client is None else client.port,
     )
 
-    result: starlette.middleware.base.StreamingResponse = await call_next(request)
+    result = await call_next(request)
 
     if result.status_code == HTTPStatus.NOT_MODIFIED:
         controller_logger.info(f'Returning response from cache for {request.url}')
@@ -85,7 +89,7 @@ async def log_middleware(request: Request, call_next):
 @app.get('/concerts')
 @cache(expire=settings.concerts_expiration_time)
 async def get_concerts(request: Request, artist_id: int) -> ConcertsResponse:
-    request_url: URL = request.url
+    request_url: starlette.datastructures.URL = request.url
     status: ResponseStatus
 
     try:
@@ -110,7 +114,7 @@ async def get_concerts(request: Request, artist_id: int) -> ConcertsResponse:
 @app.get('/track-lists')
 @cache(expire=settings.track_lists_expiration_time)
 async def get_tracks_list_info(request: Request, url: str) -> TrackListResponse:
-    request_url: URL = request.url
+    request_url: starlette.datastructures.URL = request.url
     status: ResponseStatus
 
     try:
