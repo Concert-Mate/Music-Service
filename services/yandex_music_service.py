@@ -1,5 +1,6 @@
 import re
 from datetime import datetime
+from logging import Logger
 from typing import Optional, Any
 
 import aiohttp
@@ -51,15 +52,21 @@ class YandexMusicService:
 
     __session: aiohttp.ClientSession
     __base_url: str = 'https://api.music.yandex.net'
-    __playlist_url_pattern: re.Pattern[str] = re.compile(r"^.*/users/(\S+)/playlists/(\S+)$")
-    __album_url_pattern: re.Pattern[str] = re.compile(r"^.*/album/(\S+)$")
+    __playlist_url_pattern: re.Pattern[str] = re.compile(r'^.*/users/(\S+)/playlists/(\S+)$')
+    __album_url_pattern: re.Pattern[str] = re.compile(r'^.*/album/(\S+)$')
+    __logger: Logger
+
+    def __init__(self, logger: Logger):
+        self.__logger = logger
 
     async def setup(self) -> None:
         """
         Sets up the Yandex Music API client. Must be called in async context (where event loop exists).
         """
 
+        self.__logger.info('Setting up aiohttp-session with Yandex Music API ...')
         self.__session = aiohttp.ClientSession(base_url=self.__base_url)
+        self.__logger.info('aiohttp-session with Yandex Music API established')
 
     async def parse_track_list(self, track_list_url: str) -> TrackList:
         """
@@ -69,6 +76,8 @@ class YandexMusicService:
         :raises NotFoundException: playlist/album of Yandex Music not found on the url.
         :raises InternalServiceErrorException: internal service error occurred.
         """
+
+        self.__logger.info(f'Parsing track list {track_list_url} ...')
 
         playlist_match: Optional[re.Match[str]] = re.match(self.__playlist_url_pattern, track_list_url)
         if playlist_match is not None:
@@ -85,7 +94,9 @@ class YandexMusicService:
                 album_id=album_math_match.group(1)
             )
 
-        raise NotFoundException(f'Track list {track_list_url}" not found')
+        incorrect_url_message: str = f'Track list {track_list_url} has incorrect URL'
+        self.__logger.info(incorrect_url_message)
+        raise NotFoundException(incorrect_url_message)
 
     async def parse_concerts(self, artist_id: int) -> list[Concert]:
         """
@@ -96,15 +107,23 @@ class YandexMusicService:
         :raises InternalServiceErrorException: internal service error occurred.
         """
 
+        self.__logger.info(f'Parsing concerts of artist {artist_id}. Fetching data from Yandex Music API ...')
+
         uri: str = self.__create_artist_brief_info_api_uri(artist_id)
-        not_found_message: str = f'Artist "{artist_id}" not found'
+        not_found_message: str = f'Artist {artist_id} not found'
         yandex_music_json: str_dict = await self.__fetch_artist_data(uri=uri, not_found_message=not_found_message)
+
+        self.__logger.info(f'Fetched data from Yandex Music API for artist {artist_id}')
 
         try:
             concerts: list[str_dict] = get_dict_value(yandex_music_json, 'concerts')
-            return [self.__extract_concert(c) for c in concerts]
+            result: list[Concert] = [self.__extract_concert(c) for c in concerts]
+            self.__logger.info(f'Parsing concerts of artist {artist_id} succeeded')
+            return result
         except Exception as e:
-            raise InternalServiceErrorException(f'Parsing concerts of artist "{artist_id}" failed') from e
+            message: str = f'Parsing concerts of artist {artist_id} failed'
+            self.__logger.warning(f'{message}: {str(e)}')
+            raise InternalServiceErrorException(message) from e
 
     async def parse_artist(self, artist_id: int) -> Artist:
         """
@@ -115,21 +134,31 @@ class YandexMusicService:
         :raises InternalServiceErrorException: internal service error occurred.
         """
 
+        self.__logger.info(f'Parsing artist {artist_id}. Fetching data from Yandex Music API ...')
+
         uri: str = self.__create_artist_api_uri(artist_id)
-        not_found_message: str = f'Artist "{artist_id}" not found'
+        not_found_message: str = f'Artist {artist_id} not found'
         yandex_music_json: str_dict = await self.__fetch_artist_data(uri=uri, not_found_message=not_found_message)
 
+        self.__logger.info(f'Fetched data from Yandex Music API for artist {artist_id}')
+
         try:
-            return self.__extract_artist(get_dict_value(yandex_music_json, 'artist'))
+            result: Artist = self.__extract_artist(get_dict_value(yandex_music_json, 'artist'))
+            self.__logger.info(f'Parsing artist {artist_id} succeeded')
+            return result
         except Exception as e:
-            raise InternalServiceErrorException(f'Parsing info about artist "{artist_id}" failed') from e
+            message: str = f'Parsing info about artist {artist_id} failed'
+            self.__logger.warning(f'{message}: {str(e)}')
+            raise InternalServiceErrorException(message) from e
 
     async def terminate(self) -> None:
         """
         Terminates service and frees all underlying resources.
         """
 
+        self.__logger.critical('Terminating aiohttp-session with Yandex Music API...')
         await self.__session.close()
+        self.__logger.critical('aiohttp-session with Yandex Music API terminated')
 
     async def __parse_playlist(self, url: str, user_id: str, playlist_id: str) -> TrackList:
         """
@@ -142,18 +171,26 @@ class YandexMusicService:
         :raises InternalServiceErrorException: internal error occurred during parsing the playlist.
         """
 
+        self.__logger.info(f'Parsing playlist {url}. Fetching data from Yandex Music API ...')
+
         uri: str = self.__create_playlist_api_uri(user_id=user_id, playlist_id=playlist_id)
-        not_found_message: str = f'Playlist "{url}" not found'
+        not_found_message: str = f'Playlist {url} not found'
 
         yandex_music_api_data: str_dict = await self.__fetch_yandex_music_api_data(
             uri=uri,
             not_found_message=not_found_message
         )
 
+        self.__logger.info(f'Fetched data from Yandex Music API for playlist {url}')
+
         try:
-            return self.__extract_playlist(url=url, playlist=yandex_music_api_data)
+            result: TrackList = self.__extract_playlist(url=url, playlist=yandex_music_api_data)
+            self.__logger.info(f'Parsing playlist {url} succeeded')
+            return result
         except Exception as e:
-            raise InternalServiceErrorException(f'Parsing playlist "{url}" failed') from e
+            message: str = f'Parsing playlist {url} failed'
+            self.__logger.warning(f'{message}: {str(e)}')
+            raise InternalServiceErrorException(message) from e
 
     async def __parse_album(self, url: str, album_id: str) -> TrackList:
         """
@@ -165,21 +202,31 @@ class YandexMusicService:
         :raises InternalServiceErrorException: internal error occurred during parsing the album.
         """
 
+        self.__logger.info(f'Parsing album {url}. Fetching data from Yandex Music API ...')
+
         uri: str = self.__create_album_api_uri(album_id)
-        not_found_message: str = f'Album "{url}" not found'
+        not_found_message: str = f'Album {url} not found'
 
         yandex_music_api_data: str_dict = await self.__fetch_yandex_music_api_data(
             uri=uri,
             not_found_message=not_found_message
         )
 
-        if get_dict_value_or_none(yandex_music_api_data, 'error'):
+        self.__logger.info(f'Fetched data from Yandex Music API for album {url}')
+
+        error: Optional[str_dict] = get_dict_value_or_none(yandex_music_api_data, 'error')
+        if error:
+            self.__logger.info(f'Fetched data from Yandex Music API for album {url} contains error: {str(error)}')
             raise NotFoundException(not_found_message)
 
         try:
-            return self.__extract_album(url=url, album=yandex_music_api_data)
+            result: TrackList = self.__extract_album(url=url, album=yandex_music_api_data)
+            self.__logger.info(f'Parsing album {url} succeeded')
+            return result
         except Exception as e:
-            raise InternalServiceErrorException(f'Parsing album "{url}" failed') from e
+            message: str = f'Parsing album {url} failed'
+            self.__logger.warning(f'{message}: {str(e)}')
+            raise InternalServiceErrorException(message) from e
 
     async def __fetch_artist_data(self, uri: str, not_found_message: str) -> str_dict:
         """
@@ -196,6 +243,8 @@ class YandexMusicService:
         :raises InternalServiceErrorException: internal error occurred during checking response.
         """
 
+        self.__logger.info(f'Fetching data of artist from {uri} ...')
+
         artist_key: str = 'artist'
 
         result: str_dict = await self.__fetch_yandex_music_api_data(
@@ -203,14 +252,19 @@ class YandexMusicService:
             not_found_message=not_found_message
         )
 
+        self.__logger.info(f'Received response with data of artist from {uri}')
+
         # It means that Yandex Music API returned unexpected response
         if not contains_key(result, artist_key):
-            raise InternalServiceErrorException(f'Response from {uri} does not contains key "{artist_key}"')
+            no_key_message: str = f'Response from {uri} does not contains key "{artist_key}"'
+            self.__logger.warning(no_key_message)
+            raise InternalServiceErrorException(no_key_message)
 
         artist_dict: str_dict = get_dict_value(result, artist_key)
 
         # It means that Yandex Music API returned artist with error-key, so really this artist not found
         if get_dict_value_or_none(artist_dict, 'error'):
+            self.__logger.info(f'Artist from {uri} not found')
             raise NotFoundException(not_found_message)
 
         return result
@@ -225,13 +279,19 @@ class YandexMusicService:
         :raises InternalServiceErrorException: internal error during fetching data.
         """
 
+        self.__logger.info(f'Fetching data from {uri} ...')
+
         result_key: str = 'result'
 
         try:
             response: aiohttp.ClientResponse = await self.__session.get(url=uri)
+            self.__logger.info(f'Received {response.status} - {response.reason} from {uri}')
             response_json: str_dict = await response.json()
+            self.__logger.info(f'Response from {uri} is JSON')
         except Exception as e:
-            raise InternalServiceErrorException(f'Downloading {uri} failed') from e
+            message: str = f'Downloading JSON from {uri} failed'
+            self.__logger.warning(f'{message}: {str(e)}')
+            raise InternalServiceErrorException(message) from e
         else:
             status: int = response.status
 
@@ -243,13 +303,15 @@ class YandexMusicService:
                 if result:
                     return result
 
-                raise InternalServiceErrorException(f'Key "{result_key}" not found in response from Yandex Music API')
+                malformed_message: str = f'Key "{result_key}" not found in response from Yandex Music API'
+                self.__logger.warning(malformed_message)
+                raise InternalServiceErrorException(malformed_message)
 
             if is_status_client_error:
                 raise NotFoundException(not_found_message)
 
             # Got unexpected HTTP-code
-            raise InternalServiceErrorException(f'Yandex Music API returned "{status} {response.reason}" for {uri}')
+            raise InternalServiceErrorException(f'Yandex Music API returned "{status} - {response.reason}" from {uri}')
 
     @staticmethod
     def __extract_concert(concert: str_dict) -> Concert:
