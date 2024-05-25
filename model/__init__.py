@@ -1,9 +1,4 @@
-__all__ = [
-    'Artist',
-    'Concert',
-    'Price',
-    'TrackList'
-]
+__all__ = ["Artist", "Concert", "Price", "TrackList"]
 
 from .artist import Artist
 from .concert import Concert

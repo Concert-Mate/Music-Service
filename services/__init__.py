@@ -1,8 +1,8 @@
 __all__ = [
-    'YandexMusicService',
-    'ServiceException',
-    'NotFoundException',
-    'InternalServiceErrorException'
+    "YandexMusicService",
+    "ServiceException",
+    "NotFoundException",
+    "InternalServiceErrorException"
 ]
 
 from .exceptions import ServiceException, NotFoundException, InternalServiceErrorException
