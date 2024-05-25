@@ -50,7 +50,6 @@ class YandexMusicService:
     Class represents implementation of :class:`YandexMusicService`.
     """
 
-    __session: aiohttp.ClientSession
     __base_url: str = "https://api.music.yandex.net"
     __playlist_url_pattern: re.Pattern[str] = re.compile(r"^.*/users/(\S+)/playlists/(\S+)$")
     __album_url_pattern: re.Pattern[str] = re.compile(r"^.*/album/(\S+)$")
