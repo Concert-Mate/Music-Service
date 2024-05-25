@@ -58,11 +58,6 @@ class YandexMusicService:
     def __init__(self, logger: Logger):
         self.__logger = logger
 
-    async def setup(self) -> None:
-        """
-        Sets up the Yandex Music API client. Must be called in async context (where event loop exists).
-        """
-
         self.__logger.info("Setting up aiohttp-session with Yandex Music API ...")
         self.__session = aiohttp.ClientSession(base_url=self.__base_url)
         self.__logger.info("aiohttp-session with Yandex Music API established")

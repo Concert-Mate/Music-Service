@@ -1,4 +1,5 @@
 import logging.config
+from contextlib import asynccontextmanager
 from http import HTTPStatus
 from typing import Optional
 
@@ -22,7 +23,7 @@ root_logger = logging.getLogger("root")
 service_logger: logging.Logger = logging.getLogger("service")
 controller_logger: logging.Logger = logging.getLogger("controller")
 
-yandex_music_service = YandexMusicService(service_logger)
+yandex_music_service: Optional[YandexMusicService] = None
 redis: Redis = redis_from_url(f"redis://:{settings.redis_password}@{settings.redis_host}:{settings.redis_port}")
 
 
@@ -34,9 +35,12 @@ def log_return_error(url: starlette.datastructures.URL, status: ResponseStatus) 
     controller_logger.info(f'Returning {status.code} - "{status.message}" for {url}')
 
 
-async def startup() -> None:
+@asynccontextmanager
+async def lifespan(app_: FastAPI):
     root_logger.info("Application is launching ...")
-    await yandex_music_service.setup()
+
+    global yandex_music_service
+    yandex_music_service = YandexMusicService(service_logger)
 
     # If connection fail, server will continue working, but without caching
     root_logger.info("Initializing redis-backend ...")
@@ -48,19 +52,16 @@ async def startup() -> None:
         await redis.ping()  # Check redis connection and auth
         root_logger.info("Connection with Redis is OK")
     except Exception as e:
-        root_logger.warning("Failed to establish connection with redis : %s", e)
+        root_logger.warning("Failed to establish connection with redis", exc_info=e)
 
+    yield
 
-async def shutdown() -> None:
     root_logger.critical("Application is shutting down ...")
     await yandex_music_service.terminate()
     await redis.close()
 
 
-app: FastAPI = FastAPI(
-    on_startup=[startup],
-    on_shutdown=[shutdown],
-)
+app: FastAPI = FastAPI(lifespan=lifespan)
 
 
 @app.middleware("http")
@@ -89,6 +90,8 @@ async def get_concerts(request: Request, artist_id: int) -> ConcertsResponse:
     request_url: starlette.datastructures.URL = request.url
     status: ResponseStatus
 
+    assert yandex_music_service is not None
+
     try:
         concerts: list[Concert] = await yandex_music_service.parse_concerts(artist_id)
         log_return_success(request_url)
@@ -113,6 +116,8 @@ async def get_concerts(request: Request, artist_id: int) -> ConcertsResponse:
 async def get_tracks_list_info(request: Request, url: str) -> TrackListResponse:
     request_url: starlette.datastructures.URL = request.url
     status: ResponseStatus
+
+    assert yandex_music_service is not None
 
     try:
         track_list: TrackList = await yandex_music_service.parse_track_list(url)
