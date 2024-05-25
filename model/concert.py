@@ -12,8 +12,8 @@ class Concert(BaseModel):
     afisha_url: str = Field(min_length=1)
     city: str = Field(min_length=1)
     place: Optional[str] = None
-    address: str = Field(min_length=1)
-    datetime: datetime
+    address: Optional[str] = None
+    concert_datetime: Optional[datetime] = None
     map_url: Optional[str] = None
     images: list[str]
     min_price: Optional[Price] = None

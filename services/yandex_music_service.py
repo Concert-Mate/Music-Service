@@ -2,6 +2,7 @@ import re
 from datetime import datetime
 from logging import Logger
 from typing import Optional, Any
+from urllib.parse import urlparse, ParseResult
 
 import aiohttp
 
@@ -305,7 +306,10 @@ class YandexMusicService:
         :raises KeyError: Yandex Music API JSON-dictionary doesn't have all required keys.
         """
 
-        concert_datetime = datetime.strptime(get_dict_value(concert, "datetime"), "%Y-%m-%dT%H:%M:%S%z")
+        concert_datetime_str: Optional[str] = get_dict_value_or_none(concert, "datetime")
+        concert_datetime: Optional[datetime] = None
+        if concert_datetime_str is not None:
+            concert_datetime = datetime.strptime(concert_datetime_str, "%Y-%m-%dT%H:%M:%S%z")
 
         concert_images: Optional[list[str]] = get_dict_value_or_none(concert, "images")
         concert_artist: str_dict = get_dict_value(concert, "artist")
@@ -317,14 +321,21 @@ class YandexMusicService:
             concert_min_price_currency = get_dict_value(concert_min_price_dict, "currency")
             min_price = Price(price=concert_min_price_value, currency=concert_min_price_currency)
 
+        address: Optional[str] = get_dict_value_or_none(concert, "address")
+        map_url: Optional[str] = None
+        if address is not None:
+            map_url = get_dict_value(concert, "mapUrl")
+
+        afisha_url: str = get_dict_value(concert, "afishaUrl")
+
         return Concert(
             title=get_dict_value(concert, "concertTitle"),
-            afisha_url=get_dict_value(concert, "afishaUrl"),
+            afisha_url=YandexMusicService.__get_url_without_schema_and_query(afisha_url),
             city=get_dict_value(concert, "city"),
             place=get_dict_value_or_none(concert, "place"),
-            address=get_dict_value(concert, "address"),
+            address=address,
             datetime=concert_datetime,
-            map_url=get_dict_value(concert, "mapUrl"),
+            map_url=map_url,
             images=concert_images if concert_images is not None else [],
             min_price=min_price,
             artists=[YandexMusicService.__extract_artist(concert_artist)],
@@ -349,7 +360,7 @@ class YandexMusicService:
         cover_uri: Optional[str] = get_dict_value_or_none(playlist, "ogImage")
 
         return TrackList(
-            url=url,
+            url=YandexMusicService.__get_url_without_schema_and_query(url),
             title=get_dict_value(playlist, "title"),
             image=YandexMusicService.__get_cover_link(cover_uri),
             artists=list(artists),
@@ -371,7 +382,7 @@ class YandexMusicService:
         cover_uri: Optional[str] = get_dict_value_or_none(album, "ogImage")
 
         return TrackList(
-            url=url,
+            url=YandexMusicService.__get_url_without_schema_and_query(url),
             title=get_dict_value(album, "title"),
             image=YandexMusicService.__get_cover_link(cover_uri),
             artists=unique_parsed_artists,
@@ -439,7 +450,17 @@ class YandexMusicService:
         avatars.yandex.net/get-music-content/5966316/a134df77.a.23033323-1/%%
 
         :param abstract_uri: abstract url of album/playlist cover.
-
         """
 
         return None if abstract_uri is None else f"https://{abstract_uri[:-2]}400x400"
+
+    @staticmethod
+    def __get_url_without_schema_and_query(url: str) -> str:
+        """
+        Returns url without schema and query parameters.
+
+        :param url: url.
+        """
+
+        parsed_url: ParseResult = urlparse(url)
+        return f"{parsed_url.netloc}{parsed_url.path}"
