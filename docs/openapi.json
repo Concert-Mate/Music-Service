@@ -135,14 +135,27 @@
             "title": "Place"
           },
           "address": {
-            "type": "string",
-            "minLength": 1,
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
             "title": "Address"
           },
-          "datetime": {
-            "type": "string",
-            "format": "date-time",
-            "title": "Datetime"
+          "concert_datetime": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Concert Datetime"
           },
           "map_url": {
             "anyOf": [
@@ -186,8 +199,6 @@
           "title",
           "afisha_url",
           "city",
-          "address",
-          "datetime",
           "images",
           "artists"
         ],
