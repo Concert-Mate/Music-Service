@@ -1,3 +1,4 @@
+import json
 import re
 from datetime import datetime
 from logging import Logger
@@ -50,6 +51,7 @@ class YandexMusicService:
     Class represents implementation of :class:`YandexMusicService`.
     """
 
+    __user_agent = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.6613.648 YaBrowser/24.10.4.648 (beta) Yowser/2.5 Safari/537.36"
     __session: aiohttp.ClientSession
     __base_url: str = 'https://api.music.yandex.net'
     __playlist_url_pattern: re.Pattern[str] = re.compile(r'^.*/users/(\S+)/playlists/(\S+)$')
@@ -65,7 +67,9 @@ class YandexMusicService:
         """
 
         self.__logger.info('Setting up aiohttp-session with Yandex Music API ...')
-        self.__session = aiohttp.ClientSession(base_url=self.__base_url)
+        self.__session = aiohttp.ClientSession(base_url=self.__base_url, headers={
+            "user-agent": self.__user_agent
+        })
         self.__logger.info('aiohttp-session with Yandex Music API established')
 
     async def parse_track_list(self, track_list_url: str) -> TrackList:
@@ -112,42 +116,22 @@ class YandexMusicService:
         uri: str = self.__create_artist_brief_info_api_uri(artist_id)
         not_found_message: str = f'Artist {artist_id} not found'
         yandex_music_json: str_dict = await self.__fetch_artist_data(uri=uri, not_found_message=not_found_message)
-
         self.__logger.info(f'Fetched data from Yandex Music API for artist {artist_id}')
 
         try:
+            artist = self.__extract_artist(get_dict_value(yandex_music_json, "artist"))
+        except Exception as e:
+            message: str = f'Parsing artist {artist_id} failed'
+            self.__logger.warning(f'{message}: {str(e)}')
+            raise InternalServiceErrorException(message) from e
+
+        try:
             concerts: list[str_dict] = get_dict_value(yandex_music_json, 'concerts')
-            result: list[Concert] = [self.__extract_concert(c) for c in concerts]
+            result: list[Concert] = [self.__extract_concert(c, artist) for c in concerts]
             self.__logger.info(f'Parsing concerts of artist {artist_id} succeeded')
             return result
         except Exception as e:
             message: str = f'Parsing concerts of artist {artist_id} failed'
-            self.__logger.warning(f'{message}: {str(e)}')
-            raise InternalServiceErrorException(message) from e
-
-    async def parse_artist(self, artist_id: int) -> Artist:
-        """
-        Parses basic information about artist from Yandex Music.
-
-        :param artist_id: id of artist on Yandex Music.
-        :raises NotFoundException: artist with this id on Yandex Music not found.
-        :raises InternalServiceErrorException: internal service error occurred.
-        """
-
-        self.__logger.info(f'Parsing artist {artist_id}. Fetching data from Yandex Music API ...')
-
-        uri: str = self.__create_artist_api_uri(artist_id)
-        not_found_message: str = f'Artist {artist_id} not found'
-        yandex_music_json: str_dict = await self.__fetch_artist_data(uri=uri, not_found_message=not_found_message)
-
-        self.__logger.info(f'Fetched data from Yandex Music API for artist {artist_id}')
-
-        try:
-            result: Artist = self.__extract_artist(get_dict_value(yandex_music_json, 'artist'))
-            self.__logger.info(f'Parsing artist {artist_id} succeeded')
-            return result
-        except Exception as e:
-            message: str = f'Parsing info about artist {artist_id} failed'
             self.__logger.warning(f'{message}: {str(e)}')
             raise InternalServiceErrorException(message) from e
 
@@ -314,7 +298,7 @@ class YandexMusicService:
             raise InternalServiceErrorException(f'Yandex Music API returned "{status} - {response.reason}" from {uri}')
 
     @staticmethod
-    def __extract_concert(concert: str_dict) -> Concert:
+    def __extract_concert(concert: str_dict, artist: Artist) -> Concert:
         """
         Extracts :class:`Concert` from Yandex Music API JSON-dictionary of concert.
 
@@ -325,7 +309,6 @@ class YandexMusicService:
         concert_datetime = datetime.strptime(get_dict_value(concert, 'datetime'), '%Y-%m-%dT%H:%M:%S%z')
 
         concert_images: Optional[list[str]] = get_dict_value_or_none(concert, 'images')
-        concert_artist: str_dict = get_dict_value(concert, 'artist')
 
         concert_min_price_dict: Optional[str_dict] = get_dict_value_or_none(concert, 'minPrice')
         min_price: Optional[Price] = None
@@ -341,10 +324,10 @@ class YandexMusicService:
             place=get_dict_value_or_none(concert, 'place'),
             address=get_dict_value(concert, 'address'),
             datetime=concert_datetime,
-            map_url=get_dict_value(concert, 'mapUrl'),
+            map_url=get_dict_value_or_none(concert, 'mapUrl'),
             images=concert_images if concert_images is not None else [],
             min_price=min_price,
-            artists=[YandexMusicService.__extract_artist(concert_artist)]
+            artists=[artist]
         )
 
     @staticmethod
